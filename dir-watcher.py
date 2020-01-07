@@ -18,15 +18,29 @@ sig_dict = dict(
 
 
 def signal_watcher(sig_num, frame):
-    logger.warn('Received OS process signal: ' + sig_dict[sig_num])
+    logger.warn(
+        'Received OS process signal: {}'
+        .format(sig_dict[sig_num])
+    )
     global exit_flag
     exit_flag = True
 
 
+def find_magic_string(file_name, starting_line, lines, magic_string):
+    last_line = starting_line
+    for line_num, line in enumerate(lines, starting_line):
+        if magic_string in line:
+            logger.info(
+                'Magic string found in file: {} on line: {}'
+                .format(file_name, line_num)
+            )
+            last_line = line_num
+
+    return last_line
+
+
 def watch_dir(path, magic_string, ext, interval):
-    while not exit_flag:
-        print(os.listdir(path))
-        time.sleep(interval)
+    pass
 
 
 def create_parser():
@@ -34,7 +48,7 @@ def create_parser():
     parser.add_argument('-i', '--interval', help='polling interval')
     parser.add_argument('-e', '--extension', help='extension to watch')
     parser.add_argument('dir', help='directory to watch')
-    parser.add_argument('string', help='string to watch')
+    parser.add_argument('magic_string', help='string to watch')
     return parser
 
 
@@ -50,7 +64,8 @@ def main():
 
     logging.basicConfig(
         level=logging.DEBUG,
-        format='%(process)d - %(levelname)s - %(message)s'
+        format='%(process)d - %(asctime)s - %(levelname)s - %(message)s',
+        datefmt='%y-%m-%d %H:%M:%S'
     )
 
     app_start_time = dt.now()
@@ -64,10 +79,17 @@ def main():
         .format(__file__, app_start_time.isoformat())
     )
 
-    watch_dir('./', 'test', '.txt', 5)
+    try:
+        watch_dir(
+            args.dir,
+            args.magic_string,
+            args.extension,
+            float(args.interval)
+        )
+    except Exception as e:
+        logger.error('Unhandled Exception: {}'.format(e))
 
     uptime = dt.now() - app_start_time
-
     logging.info(
         '\n'
         '--------------------------------------------------\n'
