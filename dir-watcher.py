@@ -40,7 +40,43 @@ def find_magic_string(file_name, starting_line, lines, magic_string):
 
 
 def watch_dir(path, magic_string, ext, interval):
-    pass
+    abs_path = os.path.abspath(path)
+    files = {}
+
+    while not exit_flag:
+        time.sleep(interval)
+        if not os.path.exists(abs_path):
+            logger.error('Path {} does not exist'.format(abs_path))
+            continue
+
+        for f in os.listdir(abs_path):
+            if f not in files and f.endswith(ext):
+                logger.info('Now watching file: {}'.format(f))
+                files[f] = (0, None)
+
+        for f in files.keys():
+            if f not in os.listdir(abs_path):
+                logger.info('File {} was removed'.format(f))
+                files.pop(f)
+
+        for f in files.keys():
+            last_modified = files[f][1]
+            start_line = files[f][0]
+            file_with_path = abs_path + "/" + f
+            if last_modified != os.stat(file_with_path).st_mtime:
+                with open(file_with_path) as sf:
+                    lines = sf.readlines()
+                    if start_line < len(lines):
+                        last_line = find_magic_string(
+                            file_with_path,
+                            start_line + 1,
+                            lines[start_line:],
+                            magic_string
+                        )
+                        files[f] = (
+                            last_line,
+                            os.stat(file_with_path).st_mtime
+                        )
 
 
 def create_parser():
